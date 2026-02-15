@@ -1,3 +1,4 @@
+import ProductsChart from "@/components/products-chart";
 import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -136,6 +137,17 @@ export default async function DashboardPage() {
                   <TrendingUp className="w-3 h-3 text-green-600 ml-1" />
                 </div>
               </div>
+            </div>
+          </div>
+          {/* Inventory over time */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">
+                New Products per Week
+              </h2>
+            </div>
+            <div className="h-48">
+              <ProductsChart data={weeklyProductsData} />
             </div>
           </div>
         </div>
