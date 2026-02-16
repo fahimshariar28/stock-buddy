@@ -3,13 +3,24 @@ import { deleteProduct } from "@/lib/actions/products";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export default async function InventoryPage({}) {
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const user = await getCurrentUser();
   const userId = user.id;
+
+  const params = await searchParams;
+  const q = (params.q ?? "").trim();
 
   const totalProducts = await prisma.product.findMany({
     where: {
       userId,
+      name: {
+        contains: q,
+        mode: "insensitive",
+      },
     },
   });
 
@@ -32,6 +43,19 @@ export default async function InventoryPage({}) {
 
         <div className="space-y-6">
           {/* Search Functionality */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <form className="flex gap-2" action="/inventory" method="GET">
+              <input
+                name="q"
+                placeholder="Search products..."
+                defaultValue={q}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+              />
+              <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                Search
+              </button>
+            </form>
+          </div>
 
           {/* Products Table */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
