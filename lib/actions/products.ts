@@ -19,11 +19,25 @@ const productSchema = z.object({
 export async function deleteProduct(formData: FormData) {
   const user = await getCurrentUser();
 
-  const id = String(formData.get("id") || "");
+  // For single delete
+  const singleId = formData.get("id");
+
+  // For bulk delete
+  const multipleIds = formData.getAll("ids") as string[];
+
+  let ids: string[] = [];
+
+  if (singleId) {
+    ids = [String(singleId)];
+  } else if (multipleIds.length > 0) {
+    ids = multipleIds;
+  }
+
+  if (!ids.length) return;
 
   await prisma.product.deleteMany({
     where: {
-      id,
+      id: { in: ids },
       userId: user.id,
     },
   });
@@ -51,9 +65,10 @@ export async function addProduct(formData: FormData) {
         userId: user.id,
       },
     });
-    redirect("/inventory");
   } catch (error) {
     console.error("Error adding product:", error);
     throw new Error("Failed to add product. Please try again.");
   }
+
+  redirect("/inventory");
 }

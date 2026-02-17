@@ -1,3 +1,4 @@
+import BulkDeleteButton from "@/components/bulkDeleteButton";
 import Pagination from "@/components/pagination";
 import Sidebar from "@/components/sidebar";
 import { deleteProduct } from "@/lib/actions/products";
@@ -80,6 +81,13 @@ export default async function InventoryPage({
             </form>
           </div>
 
+          {/* Bulk Delete Button */}
+          <form id="bulk-form" action={deleteProduct}>
+            <div className="mb-4">
+              <BulkDeleteButton />
+            </div>
+          </form>
+
           {/* Products Table */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <table className="w-full">
@@ -102,6 +110,9 @@ export default async function InventoryPage({
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">
                     Actions
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">
+                    Select
                   </th>
                 </tr>
               </thead>
@@ -135,6 +146,14 @@ export default async function InventoryPage({
                           Delete
                         </button>
                       </form>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <input
+                        type="checkbox"
+                        name="ids"
+                        value={product.id}
+                        form="bulk-form"
+                      />
                     </td>
                   </tr>
                 ))}
