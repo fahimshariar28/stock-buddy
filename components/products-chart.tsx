@@ -16,7 +16,6 @@ type TChartData = {
 };
 
 export default function ProductsChart({ data }: { data: TChartData[] }) {
-  console.log("Products Chart Data:", data);
   return (
     <div className="h-48 w-full">
       <ResponsiveContainer width="100%" height="100%">
