@@ -1,272 +1,233 @@
-import ProductsChart from "@/components/products-chart";
 import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TrendingUp } from "lucide-react";
+import RevenueChart from "@/components/revenue-chart";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   const userId = user.id;
 
-  const [totalProducts, lowStock, allProducts] = await Promise.all([
-    prisma.product.count({
-      where: {
-        userId,
-      },
-    }),
+  const now = new Date();
 
-    prisma.product.count({
-      where: {
-        userId,
-        lowStock: { not: null },
-        quantity: { lte: 5 },
-      },
-    }),
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    prisma.product.findMany({
-      where: {
-        userId,
-      },
-      select: {
-        price: true,
-        quantity: true,
-        createdAt: true,
-      },
+  const [sales, unpaidSales, products, saleItems] = await Promise.all([
+    prisma.sale.findMany({ where: { userId } }),
+    prisma.sale.findMany({
+      where: { userId, isPaid: false },
+    }),
+    prisma.product.findMany({ where: { userId } }),
+    prisma.saleItem.findMany({
+      where: { sale: { userId } },
+      include: { product: true },
     }),
   ]);
 
-  const totalValue = allProducts.reduce((acc, product) => {
-    return acc + Number(product.price) * Number(product.quantity);
-  }, 0);
+  // ========================
+  // REVENUE
+  // ========================
 
-  const inStockCount = allProducts.filter((p) => Number(p.quantity) > 5).length;
-  const lowStockCount = allProducts.filter(
-    (p) => Number(p.quantity) > 0 && Number(p.quantity) <= 5,
+  const totalRevenue = sales.reduce((acc, s) => acc + Number(s.total), 0);
+
+  const thisMonthRevenue = sales
+    .filter((s) => s.createdAt >= startOfThisMonth)
+    .reduce((acc, s) => acc + Number(s.total), 0);
+
+  const totalDue = unpaidSales.reduce((acc, s) => acc + Number(s.total), 0);
+
+  // ========================
+  // INVENTORY
+  // ========================
+
+  const inventoryValue = products.reduce(
+    (acc, p) => acc + Number(p.price) * p.quantity,
+    0,
+  );
+
+  const lowStockCount = products.filter(
+    (p) => p.quantity > 0 && p.quantity <= (p.lowStock || 5),
   ).length;
-  const outOfStockCount = allProducts.filter(
-    (p) => Number(p.quantity) === 0,
-  ).length;
 
-  const inStockPercentage =
-    totalProducts > 0 ? Math.round((inStockCount / totalProducts) * 100) : 0;
-  const lowStockPercentage =
-    totalProducts > 0 ? Math.round((lowStockCount / totalProducts) * 100) : 0;
-  const outOfStockPercentage =
-    totalProducts > 0 ? Math.round((outOfStockCount / totalProducts) * 100) : 0;
+  const outOfStockCount = products.filter((p) => p.quantity === 0).length;
 
-  const now = new Date();
+  // ========================
+  // REVENUE CHART (6 MONTHS)
+  // ========================
 
-  const weeklyProductsData = [];
+  const revenueChartData = [];
 
-  for (let i = 11; i >= 0; i--) {
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - i * 7);
-    weekStart.setHours(0, 0, 0, 0);
+  for (let i = 5; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
 
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
+    const end = new Date(
+      now.getFullYear(),
+      now.getMonth() - i + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
-    const weekLabel = `${String(weekStart.getMonth() + 1).padStart(2, "0")}/${String(weekStart.getDate() + 1).padStart(2, "0")}`;
+    const monthRevenue = sales
+      .filter((s) => s.createdAt >= start && s.createdAt <= end)
+      .reduce((acc, s) => acc + Number(s.total), 0);
 
-    const weekProducts = allProducts.filter((product) => {
-      const createdAt = new Date(product.createdAt);
-      return createdAt >= weekStart && createdAt <= weekEnd;
-    });
-
-    weeklyProductsData.push({
-      week: weekLabel,
-      products: weekProducts.length,
+    revenueChartData.push({
+      month: start.toLocaleString("default", {
+        month: "short",
+      }),
+      revenue: monthRevenue,
     });
   }
 
-  const recent = await prisma.product.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 5,
+  // ========================
+  // PAYMENT METHOD BREAKDOWN
+  // ========================
+
+  const paymentMethods = sales.reduce((acc: Record<string, number>, sale) => {
+    if (sale.paymentMethod) {
+      acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  // ========================
+  // TOP SELLING PRODUCTS
+  // ========================
+
+  const productSalesMap: Record<string, { name: string; qty: number }> = {};
+
+  saleItems.forEach((item) => {
+    const id = item.productId;
+
+    if (!productSalesMap[id]) {
+      productSalesMap[id] = {
+        name: item.product.name,
+        qty: 0,
+      };
+    }
+
+    productSalesMap[id].qty += item.quantity;
   });
+
+  const topProducts = Object.values(productSalesMap)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar currentPath="/dashboard" />
+
       <main className="ml-64 p-8">
-        {/* Header */}
+        {/* HEADER */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Dashboard
-              </h1>
-              <p className="text-sm text-gray-500">
-                Welcome back. Here is your dashboard overview.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl font-semibold">POS Dashboard</h1>
+          <p className="text-sm text-gray-500">
+            Overview of your business performance.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Key Metrics */}
+        {/* KPI ROW */}
+        <div className="grid grid-cols-4 gap-6 mb-8">
+          <Metric title="Total Revenue" value={`$${totalRevenue.toFixed(0)}`} />
+          <Metric
+            title="This Month Revenue"
+            value={`$${thisMonthRevenue.toFixed(0)}`}
+          />
+          <Metric
+            title="Outstanding Due"
+            value={`$${totalDue.toFixed(0)}`}
+            danger
+          />
+          <Metric
+            title="Inventory Value"
+            value={`$${inventoryValue.toFixed(0)}`}
+          />
+        </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              Key Metrics
+        {/* CHART + PAYMENT METHODS */}
+        <div className="grid grid-cols-2 gap-8 mb-8">
+          <div className="bg-white p-6 rounded-lg border">
+            <h2 className="text-lg font-semibold mb-4">
+              Revenue (Last 6 Months)
             </h2>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">
-                  {totalProducts}
-                </div>
-                <div className="text-sm text-gray-600">Total Products</div>
-                <div className="flex justify-center items-center mt-1">
-                  <span className="text-sm text-green-600">
-                    +{totalProducts}
-                  </span>
-                  <TrendingUp className="w-3 h-3 text-green-600 ml-1" />
-                </div>
-              </div>
-
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">
-                  ${Number(totalValue).toFixed(0)}
-                </div>
-                <div className="text-sm text-gray-600">Total Value</div>
-                <div className="flex justify-center items-center mt-1">
-                  <span className="text-sm text-green-600">
-                    +${Number(totalValue).toFixed(0)}
-                  </span>
-                  <TrendingUp className="w-3 h-3 text-green-600 ml-1" />
-                </div>
-              </div>
-
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">
-                  {lowStock}
-                </div>
-                <div className="text-sm text-gray-600">Low Stock</div>
-                <div className="flex justify-center items-center mt-1">
-                  <span className="text-sm text-green-600">+{lowStock}</span>
-                  <TrendingUp className="w-3 h-3 text-green-600 ml-1" />
-                </div>
-              </div>
-            </div>
+            <RevenueChart data={revenueChartData} />
           </div>
-          {/* Inventory over time */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                New Products per Week
-              </h2>
-            </div>
-            <div className="h-48">
-              <ProductsChart data={weeklyProductsData} />
+
+          <div className="bg-white p-6 rounded-lg border">
+            <h2 className="text-lg font-semibold mb-4">Payment Methods</h2>
+
+            <div className="space-y-3">
+              {Object.entries(paymentMethods).length === 0 && (
+                <p className="text-sm text-gray-500">No payment data yet.</p>
+              )}
+
+              {Object.entries(paymentMethods).map(([method, count]) => (
+                <div key={method} className="flex justify-between text-sm">
+                  <span>{method}</span>
+                  <span>{count}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Stock Levels */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Stock Levels
-              </h2>
-            </div>
-            <div className="space-y-3">
-              {recent.map((product, key) => {
-                const stockLevel =
-                  product.quantity === 0
-                    ? 0
-                    : product.quantity <= (product.lowStock || 5)
-                      ? 1
-                      : 2;
+        {/* INVENTORY HEALTH + TOP PRODUCTS */}
+        <div className="grid grid-cols-2 gap-8">
+          <div className="bg-white p-6 rounded-lg border">
+            <h2 className="text-lg font-semibold mb-4">Inventory Health</h2>
 
-                const bgColor = ["bg-red-600", "bg-yellow-600", "bg-green-600"];
-                const textColor = [
-                  "text-red-600",
-                  "text-yellow-600",
-                  "text-green-600",
-                ];
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span>Low Stock</span>
+                <span>{lowStockCount}</span>
+              </div>
 
-                return (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${bgColor[stockLevel]}`}
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-gray-900">
-                          {product.name}
-                        </span>
-                      </div>
-                    </div>
-                    <div
-                      className={`text-sm font-medium ${textColor[stockLevel]}`}
-                    >
-                      {product.quantity} units
-                    </div>
-                  </div>
-                );
-              })}
+              <div className="flex justify-between">
+                <span>Out of Stock</span>
+                <span>{outOfStockCount}</span>
+              </div>
             </div>
           </div>
 
-          {/* Efficiency Metrics */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Efficiency Metrics
-              </h2>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="relative w-48 h-48">
-                <div className="absolute inset-0 rounded-full border-8 border-gray-200"></div>
-                <div
-                  className="absolute inset-0 rounded-full border-8 border-purple-600"
-                  style={{
-                    clipPath:
-                      "polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 50%)",
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inStockPercentage}%
-                    </div>
-                    <div className="text-sm text-gray-600">In Stock</div>
-                  </div>
+          <div className="bg-white p-6 rounded-lg border">
+            <h2 className="text-lg font-semibold mb-4">Top Selling Products</h2>
+
+            <div className="space-y-3">
+              {topProducts.length === 0 && (
+                <p className="text-sm text-gray-500">No sales yet.</p>
+              )}
+
+              {topProducts.map((product, index) => (
+                <div key={index} className="flex justify-between text-sm">
+                  <span>{product.name}</span>
+                  <span>{product.qty} sold</span>
                 </div>
-              </div>
-            </div>
-            <div className="mt-6 space-y-2">
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-purple-600" />
-                  <span>In Stock ({inStockPercentage}%)</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-600" />
-                  <span>Low Stock ({lowStockPercentage}%)</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-600" />
-                  <span>Out of Stock ({outOfStockPercentage}%)</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function Metric({
+  title,
+  value,
+  danger,
+}: {
+  title: string;
+  value: string;
+  danger?: boolean;
+}) {
+  return (
+    <div className="bg-white p-6 rounded-lg border text-center">
+      <div className="text-sm text-gray-600">{title}</div>
+      <div className={`text-2xl font-bold ${danger ? "text-red-600" : ""}`}>
+        {value}
+      </div>
     </div>
   );
 }
