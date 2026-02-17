@@ -1,8 +1,11 @@
 import Sidebar from "@/components/sidebar";
 import { addProduct } from "@/lib/actions/products";
+import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 
 export default async function AddProductPage() {
+  await getCurrentUser();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar currentPath="/add-product" />

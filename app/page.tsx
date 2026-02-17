@@ -1,11 +1,11 @@
-import { getCurrentUser } from "@/lib/auth";
+import { stackServerApp } from "@/stack/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-  const user = await getCurrentUser();
+  const user = await stackServerApp.getUser();
 
-  if (user.id) {
+  if (user) {
     redirect("/dashboard");
   }
 
