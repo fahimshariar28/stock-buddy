@@ -72,3 +72,34 @@ export async function addProduct(formData: FormData) {
 
   redirect("/inventory");
 }
+
+export async function updateProduct(id: string, formData: FormData) {
+  const user = await getCurrentUser();
+
+  const parsed = productSchema.safeParse({
+    name: formData.get("name"),
+    price: formData.get("price"),
+    quantity: formData.get("quantity"),
+    sku: formData.get("sku") || undefined,
+    lowStock: formData.get("lowStock") || undefined,
+  });
+
+  if (!parsed.success) {
+    throw new Error("Invalid product data: " + parsed.error.message);
+  }
+
+  try {
+    await prisma.product.update({
+      where: {
+        id,
+        userId: user.id,
+      },
+      data: parsed.data,
+    });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    throw new Error("Failed to update product. Please try again.");
+  }
+
+  redirect("/inventory");
+}
