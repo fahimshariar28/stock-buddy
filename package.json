@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
+    "@faker-js/faker": "^10.3.0",
     "@prisma/client": "^6.19.2",
     "@stackframe/stack": "^2.8.67",
     "lucide-react": "^0.564.0",
@@ -17,11 +21,12 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
+    "ts-node": "^10.9.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.33",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.3.1",
