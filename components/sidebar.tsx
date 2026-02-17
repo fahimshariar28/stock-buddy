@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { BarChart3, Package, Plus, Settings } from "lucide-react";
+import { BarChart3, Package, Plus, Settings, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { UserButton } from "@stackframe/stack";
 
@@ -12,6 +12,7 @@ export default function Sidebar({
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     { name: "Inventory", href: "/inventory", icon: Package },
     { name: "Add Product", href: "/add-product", icon: Plus },
+    { name: "Sales", href: "/sales", icon: ShoppingCart },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
