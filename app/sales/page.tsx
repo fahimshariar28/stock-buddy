@@ -3,19 +3,40 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import MarkAsPaidButton from "@/components/mark-paid-button";
+import Pagination from "@/components/pagination";
 
-export default async function SalesPage() {
+export default async function SalesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
   const user = await getCurrentUser();
 
-  const sales = await prisma.sale.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: {
-      items: {
-        include: { product: true },
+  const params = await searchParams;
+
+  const pageSize = 10;
+
+  const where = { userId: user.id };
+
+  const [totalCount, sales] = await Promise.all([
+    prisma.sale.count({ where }),
+
+    prisma.sale.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        items: {
+          include: { product: true },
+        },
       },
-    },
-  });
+      skip: (Number(params.page ?? 1) - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  const page = Math.max(1, Number(params.page ?? 1));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -91,6 +112,18 @@ export default async function SalesPage() {
               ))}
             </tbody>
           </table>
+          {totalPages > 1 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                baseUrl="/sales"
+                searchParams={{
+                  pageSize: String(pageSize),
+                }}
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>
