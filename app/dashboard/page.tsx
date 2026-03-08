@@ -119,17 +119,16 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar currentPath="/dashboard" />
 
-      <main className="ml-64 p-8">
+      <main className="lg:ml-64 p-4 lg:p-8 pt-20 lg:pt-8">
         {/* HEADER */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold">POS Dashboard</h1>
+          <h1 className="text-2xl font-semibold">Stock Buddy</h1>
           <p className="text-sm text-gray-500">
             Overview of your business performance.
           </p>
         </div>
-
         {/* KPI ROW */}
-        <div className="grid grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Metric title="Total Revenue" value={`$${totalRevenue.toFixed(0)}`} />
           <Metric
             title="This Month Revenue"
@@ -145,9 +144,17 @@ export default async function DashboardPage() {
             value={`$${inventoryValue.toFixed(0)}`}
           />
         </div>
-
         {/* CHART + PAYMENT METHODS */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        {sales.length === 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center mb-8">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-lg font-semibold mb-2">No business data yet</h3>
+            <p className="text-sm text-gray-500">
+              Start making sales to see analytics here.
+            </p>
+          </div>
+        )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="bg-white p-6 rounded-lg border">
             <h2 className="text-lg font-semibold mb-4">
               Revenue (Last 6 Months)
@@ -172,9 +179,8 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-
         {/* INVENTORY HEALTH + TOP PRODUCTS */}
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-lg border">
             <h2 className="text-lg font-semibold mb-4">Inventory Health</h2>
 
@@ -225,7 +231,9 @@ function Metric({
   return (
     <div className="bg-white p-6 rounded-lg border text-center">
       <div className="text-sm text-gray-600">{title}</div>
-      <div className={`text-2xl font-bold ${danger ? "text-red-600" : ""}`}>
+      <div
+        className={`text-xl sm:text-2xl font-bold ${danger ? "text-red-600" : ""}`}
+      >
         {value}
       </div>
     </div>

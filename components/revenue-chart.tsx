@@ -17,7 +17,7 @@ type Data = {
 
 export default function RevenueChart({ data }: { data: Data[] }) {
   return (
-    <div className="h-64 w-full">
+    <div className="h-56 sm:h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
