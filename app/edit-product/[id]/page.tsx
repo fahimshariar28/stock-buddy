@@ -34,14 +34,13 @@ export default async function EditProductPage({ params }: TProps) {
     <div className="min-h-screen bg-gray-50">
       <Sidebar currentPath="/edit-product" />
 
-      <main className="ml-64 p-8">
+      <main className="lg:ml-64 p-4 lg:p-8 pt-20 lg:pt-8">
         <div className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900">Edit Product</h2>
           <p className="text-sm text-gray-500">Update your product details.</p>
         </div>
-
         <div className="max-w-2xl">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition p-6">
             <form className="space-y-6" action={updateProductWithId}>
               {/* Product Name */}
               <div>
@@ -120,7 +119,7 @@ export default async function EditProductPage({ params }: TProps) {
               <div className="flex gap-5">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:scale-[0.98] transition"
                 >
                   Update Product
                 </button>
