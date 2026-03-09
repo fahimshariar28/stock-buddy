@@ -89,7 +89,7 @@ export default function SaleForm({ products }: SaleFormProps) {
   const hasInvalidQuantity = cart.some((item) => item.quantity === 0);
 
   return (
-    <form action={createSale} className="grid grid-cols-3 gap-6">
+    <form action={createSale} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* LEFT SIDE */}
       <div className="col-span-2 space-y-4">
         <input
@@ -100,7 +100,7 @@ export default function SaleForm({ products }: SaleFormProps) {
           className="w-full px-4 py-2 border rounded-lg"
         />
 
-        <div className="grid grid-cols-3 gap-4 max-h-150 overflow-y-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 max-h-150 overflow-y-auto">
           {filteredProducts.map((product) => {
             const isOutOfStock = product.quantity === 0;
 
@@ -137,17 +137,22 @@ export default function SaleForm({ products }: SaleFormProps) {
       </div>
 
       {/* RIGHT SIDE — CART */}
-      <div className="bg-white border rounded-lg p-6 space-y-4 h-fit sticky top-8">
+      <div className="bg-white border rounded-lg p-6 space-y-4 h-fit lg:sticky lg:top-8">
         <h3 className="text-lg font-semibold">Cart</h3>
 
         {cart.length === 0 && (
-          <p className="text-sm text-gray-500">No products added</p>
+          <div className="text-center py-8 text-gray-500 text-sm">
+            🛒 Your cart is empty
+            <div className="mt-2 text-xs">
+              Select products from the left to add them
+            </div>
+          </div>
         )}
 
         {cart.map((item) => (
           <div
             key={item.productId}
-            className="flex justify-between items-center border-b pb-3"
+            className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b pb-3 gap-2"
           >
             <div>
               <div className="font-medium">{item.name}</div>
@@ -227,7 +232,7 @@ export default function SaleForm({ products }: SaleFormProps) {
 
         <button
           disabled={cart.length === 0 || hasInvalidQuantity}
-          className="w-full mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+          className="w-full mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:scale-[0.98] transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           Complete Sale
         </button>
